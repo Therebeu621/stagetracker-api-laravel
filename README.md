@@ -1,7 +1,7 @@
 # StageTracker API
 
 > API REST Laravel pour gérer ses candidatures de stage.  
-> Projet pédagogique – Master ILI, backend/API.
+> Projet personnel.
 
 ## Stack
 
@@ -25,7 +25,7 @@ sudo apt install -y postgresql postgresql-client php8.3-pgsql
 sudo service postgresql start
 
 # 4. Créer la base de données
-sudo -u postgres psql -c "CREATE USER stagetracker WITH PASSWORD 'secret';"
+sudo -u postgres psql -c "CREATE USER stagetracker WITH PASSWORD 'change_me';"
 sudo -u postgres psql -c "CREATE DATABASE stagetracker OWNER stagetracker;"
 
 # 5. Copier l'env (si pas déjà fait) et configurer la DB
@@ -38,14 +38,14 @@ php artisan key:generate
 # DB_PORT=5432
 # DB_DATABASE=stagetracker
 # DB_USERNAME=stagetracker
-# DB_PASSWORD=secret
+# DB_PASSWORD=change_me
 
 # 6. Lancer les migrations
 php artisan migrate
 
 # 7. Créer un utilisateur (via tinker)
 php artisan tinker
->>> \App\Models\User::factory()->create(['email'=>'admin@test.com','password'=>bcrypt('secret123')]);
+>>> \App\Models\User::factory()->create(['email'=>'admin@test.com','password'=>bcrypt('change_me')]);
 >>> exit
 
 # 8. Lancer le serveur
@@ -64,7 +64,7 @@ L'API utilise **Laravel Sanctum** avec des tokens Bearer.
 curl -X POST http://localhost:8000/api/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"email":"admin@test.com","password":"secret123"}'
+  -d '{"email":"admin@test.com","password":"change_me"}'
 ```
 
 Réponse :
