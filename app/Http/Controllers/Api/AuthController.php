@@ -12,9 +12,29 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * POST /api/login
-     *
-     * Authenticate user and return a Sanctum token.
+     * @OA\Post(
+     *   path="/api/login",
+     *   tags={"Auth"},
+     *   summary="Connexion utilisateur",
+     *   description="Authentifie l'utilisateur et retourne un token Sanctum",
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(
+     *       required={"email","password"},
+     *       @OA\Property(property="email", type="string", format="email", example="admin@test.com"),
+     *       @OA\Property(property="password", type="string", format="password", example="secret123")
+     *     )
+     *   ),
+     *   @OA\Response(
+     *     response=200,
+     *     description="Authentification réussie",
+     *     @OA\JsonContent(
+     *       @OA\Property(property="message", type="string", example="Authenticated"),
+     *       @OA\Property(property="token", type="string", example="1|abc123...")
+     *     )
+     *   ),
+     *   @OA\Response(response=422, description="Credentials invalides")
+     * )
      */
     public function login(Request $request): JsonResponse
     {
@@ -40,9 +60,15 @@ class AuthController extends Controller
     }
 
     /**
-     * POST /api/logout
-     *
-     * Revoke the current token.
+     * @OA\Post(
+     *   path="/api/logout",
+     *   tags={"Auth"},
+     *   summary="Déconnexion utilisateur",
+     *   description="Révoque le token actuel",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Response(response=204, description="Token révoqué"),
+     *   @OA\Response(response=401, description="Non authentifié")
+     * )
      */
     public function logout(Request $request): JsonResponse
     {

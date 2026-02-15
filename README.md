@@ -89,6 +89,34 @@ curl -X POST http://localhost:8000/api/logout \
 
 ---
 
+## 📚 Documentation Interactive (Swagger/OpenAPI)
+
+L'API est entièrement documentée via **Swagger UI** — testez tous les endpoints directement dans le navigateur !
+
+### Accéder à Swagger UI
+
+```
+http://localhost:8000/api/documentation
+```
+
+### Utiliser l'authentification dans Swagger
+
+1. Cliquez sur le bouton **"Authorize"** 🔒 en haut à droite
+2. Dans le champ `bearerAuth`, entrez : `Bearer VOTRE_TOKEN`
+   - Exemple : `Bearer 1|abc123...`
+3. Cliquez sur **"Authorize"**, puis **"Close"**
+4. Les requêtes protégées ✅ fonctionneront maintenant
+
+### Re-générer la doc Swagger
+
+Si vous modifiez les annotations :
+
+```bash
+php artisan l5-swagger:generate
+```
+
+---
+
 ## 📋 Endpoints
 
 | Méthode | URI | Description | Auth |

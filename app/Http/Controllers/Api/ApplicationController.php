@@ -15,10 +15,43 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ApplicationController extends Controller
 {
     /**
-     * GET /api/applications
-     *
-     * Paginated list with optional filters and sorting.
-     * ?status=applied&sort=applied_at&direction=desc&per_page=15
+     * @OA\Get(
+     *   path="/api/applications",
+     *   tags={"Applications"},
+     *   summary="Liste des candidatures",
+     *   description="Retourne une liste paginée avec filtres et tri",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="status",
+     *     in="query",
+     *     description="Filtrer par statut",
+     *     required=false,
+     *     @OA\Schema(type="string", enum={"applied","interview","offer","rejected"})
+     *   ),
+     *   @OA\Parameter(
+     *     name="sort",
+     *     in="query",
+     *     description="Champ de tri",
+     *     required=false,
+     *     @OA\Schema(type="string", enum={"applied_at"})
+     *   ),
+     *   @OA\Parameter(
+     *     name="direction",
+     *     in="query",
+     *     description="Direction du tri",
+     *     required=false,
+     *     @OA\Schema(type="string", enum={"asc","desc"}, default="desc")
+     *   ),
+     *   @OA\Parameter(
+     *     name="per_page",
+     *     in="query",
+     *     description="Nombre d'éléments par page (max 100)",
+     *     required=false,
+     *     @OA\Schema(type="integer", default=15)
+     *   ),
+     *   @OA\Response(response=200, description="Liste paginée"),
+     *   @OA\Response(response=401, description="Non authentifié")
+     * )
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -43,7 +76,27 @@ class ApplicationController extends Controller
     }
 
     /**
-     * POST /api/applications
+     * @OA\Post(
+     *   path="/api/applications",
+     *   tags={"Applications"},
+     *   summary="Créer une candidature",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(
+     *       required={"company","position"},
+     *       @OA\Property(property="company", type="string", example="Google"),
+     *       @OA\Property(property="position", type="string", example="Backend Developer"),
+     *       @OA\Property(property="location", type="string", example="Paris"),
+     *       @OA\Property(property="status", type="string", enum={"applied","interview","offer","rejected"}, default="applied"),
+     *       @OA\Property(property="applied_at", type="string", format="date", example="2026-02-01"),
+     *       @OA\Property(property="next_followup_at", type="string", format="date", example="2026-02-15"),
+     *       @OA\Property(property="notes", type="string", example="Applied via website")
+     *     )
+     *   ),
+     *   @OA\Response(response=201, description="Candidature créée"),
+     *   @OA\Response(response=422, description="Validation échouée")
+     * )
      */
     public function store(StoreApplicationRequest $request): JsonResponse
     {
@@ -55,7 +108,20 @@ class ApplicationController extends Controller
     }
 
     /**
-     * GET /api/applications/{application}
+     * @OA\Get(
+     *   path="/api/applications/{id}",
+     *   tags={"Applications"},
+     *   summary="Détails d'une candidature",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     @OA\Schema(type="integer")
+     *   ),
+     *   @OA\Response(response=200, description="Détails avec followups"),
+     *   @OA\Response(response=404, description="Non trouvée")
+     * )
      */
     public function show(Application $application): ApplicationResource
     {
@@ -65,7 +131,27 @@ class ApplicationController extends Controller
     }
 
     /**
-     * PATCH /api/applications/{application}
+     * @OA\Patch(
+     *   path="/api/applications/{id}",
+     *   tags={"Applications"},
+     *   summary="Modifier une candidature",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     @OA\Schema(type="integer")
+     *   ),
+     *   @OA\RequestBody(
+     *     @OA\JsonContent(
+     *       @OA\Property(property="status", type="string", enum={"applied","interview","offer","rejected"}),
+     *       @OA\Property(property="next_followup_at", type="string", format="date"),
+     *       @OA\Property(property="notes", type="string")
+     *     )
+     *   ),
+     *   @OA\Response(response=200, description="Candidature mise à jour"),
+     *   @OA\Response(response=404, description="Non trouvée")
+     * )
      */
     public function update(UpdateApplicationRequest $request, Application $application): ApplicationResource
     {
@@ -75,7 +161,20 @@ class ApplicationController extends Controller
     }
 
     /**
-     * DELETE /api/applications/{application}
+     * @OA\Delete(
+     *   path="/api/applications/{id}",
+     *   tags={"Applications"},
+     *   summary="Supprimer une candidature",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     @OA\Schema(type="integer")
+     *   ),
+     *   @OA\Response(response=204, description="Supprimée"),
+     *   @OA\Response(response=404, description="Non trouvée")
+     * )
      */
     public function destroy(Application $application): JsonResponse
     {
@@ -85,9 +184,17 @@ class ApplicationController extends Controller
     }
 
     /**
-     * GET /api/applications/export.csv
-     *
-     * Stream all applications as a CSV download.
+     * @OA\Get(
+     *   path="/api/applications/export.csv",
+     *   tags={"Applications"},
+     *   summary="Export CSV des candidatures",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Response(
+     *     response=200,
+     *     description="Fichier CSV téléchargé",
+     *     @OA\MediaType(mediaType="text/csv")
+     *   )
+     * )
      */
     public function exportCsv(): StreamedResponse
     {

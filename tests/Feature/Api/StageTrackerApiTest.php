@@ -214,4 +214,15 @@ class StageTrackerApiTest extends TestCase
         $this->assertStringContainsString('ExportCorp', $content);
         $this->assertStringContainsString('company', $content); // header row
     }
+
+    // ────────────────────────────────────────────
+    // SWAGGER DOCUMENTATION TEST
+    // ────────────────────────────────────────────
+
+    public function test_swagger_documentation_accessible(): void
+    {
+        $response = $this->get('/api/documentation');
+
+        $response->assertOk(); // Swagger UI loads successfully
+    }
 }

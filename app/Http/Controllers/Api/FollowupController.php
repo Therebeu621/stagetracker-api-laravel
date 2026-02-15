@@ -13,7 +13,20 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 class FollowupController extends Controller
 {
     /**
-     * GET /api/applications/{application}/followups
+     * @OA\Get(
+     *   path="/api/applications/{application_id}/followups",
+     *   tags={"Followups"},
+     *   summary="Liste des suivis d'une candidature",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="application_id",
+     *     in="path",
+     *     required=true,
+     *     @OA\Schema(type="integer")
+     *   ),
+     *   @OA\Response(response=200, description="Liste des suivis"),
+     *   @OA\Response(response=404, description="Candidature non trouvée")
+     * )
      */
     public function index(Application $application): AnonymousResourceCollection
     {
@@ -23,7 +36,29 @@ class FollowupController extends Controller
     }
 
     /**
-     * POST /api/applications/{application}/followups
+     * @OA\Post(
+     *   path="/api/applications/{application_id}/followups",
+     *   tags={"Followups"},
+     *   summary="Créer un suivi",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="application_id",
+     *     in="path",
+     *     required=true,
+     *     @OA\Schema(type="integer")
+     *   ),
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(
+     *       required={"type"},
+     *       @OA\Property(property="type", type="string", enum={"email","call","linkedin"}),
+     *       @OA\Property(property="done_at", type="string", format="date", example="2026-02-15"),
+     *       @OA\Property(property="notes", type="string", example="Relance envoyée")
+     *     )
+     *   ),
+     *   @OA\Response(response=201, description="Suivi créé"),
+     *   @OA\Response(response=422, description="Validation échouée")
+     * )
      */
     public function store(StoreFollowupRequest $request, Application $application): JsonResponse
     {
@@ -35,7 +70,20 @@ class FollowupController extends Controller
     }
 
     /**
-     * DELETE /api/followups/{followup}
+     * @OA\Delete(
+     *   path="/api/followups/{id}",
+     *   tags={"Followups"},
+     *   summary="Supprimer un suivi",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(
+     *     name="id",
+     *     in="path",
+     *     required=true,
+     *     @OA\Schema(type="integer")
+     *   ),
+     *   @OA\Response(response=204, description="Suivi supprimé"),
+     *   @OA\Response(response=404, description="Suivi non trouvé")
+     * )
      */
     public function destroy(Followup $followup): JsonResponse
     {

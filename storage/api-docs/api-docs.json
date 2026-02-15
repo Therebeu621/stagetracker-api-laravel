@@ -1,0 +1,539 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "StageTracker API",
+        "description": "API REST pour gérer les candidatures de stage",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "Local server"
+        }
+    ],
+    "paths": {
+        "/api/applications": {
+            "get": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Liste des candidatures",
+                "description": "Retourne une liste paginée avec filtres et tri",
+                "operationId": "dd67feb5de774e8f7106ff3ea81f575c",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filtrer par statut",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "applied",
+                                "interview",
+                                "offer",
+                                "rejected"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Champ de tri",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "applied_at"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "direction",
+                        "in": "query",
+                        "description": "Direction du tri",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "desc",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page (max 100)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Créer une candidature",
+                "operationId": "19f9c4e2b9bb3e982db6569cf02a59d7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "company",
+                                    "position"
+                                ],
+                                "properties": {
+                                    "company": {
+                                        "type": "string",
+                                        "example": "Google"
+                                    },
+                                    "position": {
+                                        "type": "string",
+                                        "example": "Backend Developer"
+                                    },
+                                    "location": {
+                                        "type": "string",
+                                        "example": "Paris"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "default": "applied",
+                                        "enum": [
+                                            "applied",
+                                            "interview",
+                                            "offer",
+                                            "rejected"
+                                        ]
+                                    },
+                                    "applied_at": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-02-01"
+                                    },
+                                    "next_followup_at": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-02-15"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Applied via website"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Candidature créée"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/applications/{id}": {
+            "get": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Détails d'une candidature",
+                "operationId": "1068983793babb1ce7b105cee2aeade4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails avec followups"
+                    },
+                    "404": {
+                        "description": "Non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Supprimer une candidature",
+                "operationId": "45bc43746912d036435136a505aa1ffc",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Supprimée"
+                    },
+                    "404": {
+                        "description": "Non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Modifier une candidature",
+                "operationId": "cc6adfbda19087b42ba13745120a9752",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "applied",
+                                            "interview",
+                                            "offer",
+                                            "rejected"
+                                        ]
+                                    },
+                                    "next_followup_at": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "notes": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Candidature mise à jour"
+                    },
+                    "404": {
+                        "description": "Non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/applications/export.csv": {
+            "get": {
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Export CSV des candidatures",
+                "operationId": "38f00e63213fce41de93580ef4d2035d",
+                "responses": {
+                    "200": {
+                        "description": "Fichier CSV téléchargé",
+                        "content": {
+                            "text/csv": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Connexion utilisateur",
+                "description": "Authentifie l'utilisateur et retourne un token Sanctum",
+                "operationId": "222b2625838e3c57e017987f73598fda",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@test.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "secret123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authentification réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Authenticated"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abc123..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Credentials invalides"
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Déconnexion utilisateur",
+                "description": "Révoque le token actuel",
+                "operationId": "ad65cbbd4e9f201619eae184a5961a98",
+                "responses": {
+                    "204": {
+                        "description": "Token révoqué"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/applications/{application_id}/followups": {
+            "get": {
+                "tags": [
+                    "Followups"
+                ],
+                "summary": "Liste des suivis d'une candidature",
+                "operationId": "83b2e883644a89f066d9f5ea1bfb6654",
+                "parameters": [
+                    {
+                        "name": "application_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des suivis"
+                    },
+                    "404": {
+                        "description": "Candidature non trouvée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Followups"
+                ],
+                "summary": "Créer un suivi",
+                "operationId": "6d24ea215a61fd559cc210ba31783cff",
+                "parameters": [
+                    {
+                        "name": "application_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "type"
+                                ],
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "email",
+                                            "call",
+                                            "linkedin"
+                                        ]
+                                    },
+                                    "done_at": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-02-15"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Relance envoyée"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Suivi créé"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/followups/{id}": {
+            "delete": {
+                "tags": [
+                    "Followups"
+                ],
+                "summary": "Supprimer un suivi",
+                "operationId": "f248e540edbad2aa6074ce0f2a516356",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Suivi supprimé"
+                    },
+                    "404": {
+                        "description": "Suivi non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Token obtenu via POST /api/login",
+                "bearerFormat": "Sanctum",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Applications",
+            "description": "Applications"
+        },
+        {
+            "name": "Auth",
+            "description": "Auth"
+        },
+        {
+            "name": "Followups",
+            "description": "Followups"
+        }
+    ]
+}
