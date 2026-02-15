@@ -327,7 +327,7 @@
                                     "password": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "secret123"
+                                        "example": "change_me"
                                     }
                                 },
                                 "type": "object"
