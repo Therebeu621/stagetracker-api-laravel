@@ -53,6 +53,33 @@ class StageTrackerApiTest extends TestCase
             ->assertJsonStructure(['message', 'token']);
     }
 
+    public function test_register_creates_user_and_returns_token(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'New User',
+            'email' => 'new-user@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonStructure(['message', 'token'])
+            ->assertJsonFragment(['message' => 'Registered']);
+
+        $this->assertDatabaseHas('users', ['email' => 'new-user@example.com']);
+    }
+
+    public function test_register_fails_with_existing_email(): void
+    {
+        $response = $this->postJson('/api/register', [
+            'name' => 'Another User',
+            'email' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+    }
+
     public function test_login_fails_with_wrong_credentials(): void
     {
         $response = $this->postJson('/api/login', [
@@ -100,14 +127,15 @@ class StageTrackerApiTest extends TestCase
         $response->assertCreated() // 201
             ->assertJsonFragment(['company' => 'Google', 'position' => 'Backend Developer']);
 
-        $this->assertDatabaseHas('applications', ['company' => 'Google']);
+        $this->assertDatabaseHas('applications', ['company' => 'Google', 'user_id' => $this->user->id]);
     }
 
     public function test_list_applications_with_filters(): void
     {
-        Application::factory()->create(['status' => 'applied']);
-        Application::factory()->create(['status' => 'interview']);
-        Application::factory()->create(['status' => 'applied']);
+        Application::factory()->create(['user_id' => $this->user->id, 'status' => 'applied']);
+        Application::factory()->create(['user_id' => $this->user->id, 'status' => 'interview']);
+        Application::factory()->create(['user_id' => $this->user->id, 'status' => 'applied']);
+        Application::factory()->create(['status' => 'applied']); // another user
 
         // Filter by status=applied
         $response = $this->getJson('/api/applications?status=applied', $this->authHeaders());
@@ -118,7 +146,7 @@ class StageTrackerApiTest extends TestCase
 
     public function test_show_application(): void
     {
-        $app = Application::factory()->create();
+        $app = Application::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->getJson("/api/applications/{$app->id}", $this->authHeaders());
 
@@ -128,7 +156,7 @@ class StageTrackerApiTest extends TestCase
 
     public function test_update_application(): void
     {
-        $app = Application::factory()->create(['status' => 'applied']);
+        $app = Application::factory()->create(['user_id' => $this->user->id, 'status' => 'applied']);
 
         $response = $this->patchJson("/api/applications/{$app->id}", [
             'status' => 'interview',
@@ -142,7 +170,7 @@ class StageTrackerApiTest extends TestCase
 
     public function test_delete_application(): void
     {
-        $app = Application::factory()->create();
+        $app = Application::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->deleteJson("/api/applications/{$app->id}", [], $this->authHeaders());
 
@@ -171,7 +199,7 @@ class StageTrackerApiTest extends TestCase
 
     public function test_followup_crud(): void
     {
-        $app = Application::factory()->create();
+        $app = Application::factory()->create(['user_id' => $this->user->id]);
 
         // Create followup
         $response = $this->postJson("/api/applications/{$app->id}/followups", [
@@ -203,7 +231,8 @@ class StageTrackerApiTest extends TestCase
 
     public function test_csv_export(): void
     {
-        Application::factory()->create(['company' => 'ExportCorp']);
+        Application::factory()->create(['user_id' => $this->user->id, 'company' => 'ExportCorp']);
+        Application::factory()->create(['company' => 'OtherUsersCorp']);
 
         $response = $this->get('/api/applications/export.csv', $this->authHeaders());
 
@@ -212,7 +241,42 @@ class StageTrackerApiTest extends TestCase
 
         $content = $response->streamedContent();
         $this->assertStringContainsString('ExportCorp', $content);
+        $this->assertStringNotContainsString('OtherUsersCorp', $content);
         $this->assertStringContainsString('company', $content); // header row
+    }
+
+    public function test_user_cannot_access_another_users_application(): void
+    {
+        $otherUsersApplication = Application::factory()->create();
+
+        $this->getJson("/api/applications/{$otherUsersApplication->id}", $this->authHeaders())
+            ->assertNotFound();
+
+        $this->patchJson("/api/applications/{$otherUsersApplication->id}", [
+            'status' => 'offer',
+        ], $this->authHeaders())->assertNotFound();
+
+        $this->deleteJson("/api/applications/{$otherUsersApplication->id}", [], $this->authHeaders())
+            ->assertNotFound();
+    }
+
+    public function test_user_cannot_access_another_users_followups(): void
+    {
+        $otherUsersApplication = Application::factory()->create();
+        $followup = Followup::factory()->create([
+            'application_id' => $otherUsersApplication->id,
+        ]);
+
+        $this->getJson("/api/applications/{$otherUsersApplication->id}/followups", $this->authHeaders())
+            ->assertNotFound();
+
+        $this->postJson("/api/applications/{$otherUsersApplication->id}/followups", [
+            'type' => 'email',
+            'done_at' => '2026-02-20',
+        ], $this->authHeaders())->assertNotFound();
+
+        $this->deleteJson("/api/followups/{$followup->id}", [], $this->authHeaders())
+            ->assertNotFound();
     }
 
     // ────────────────────────────────────────────

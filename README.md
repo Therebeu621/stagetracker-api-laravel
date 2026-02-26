@@ -11,6 +11,54 @@
 
 ---
 
+## 🐳 Lancement avec Docker (recommandé)
+
+```bash
+# 1. Copier l'env Docker
+cp .env.docker .env
+
+# 2. Build image PHP
+docker compose build app
+
+# 3. Installer les dépendances PHP dans le volume vendor
+docker compose run --rm app composer install --no-interaction --prefer-dist
+
+# 4. Démarrage des services
+docker compose up -d
+
+# 5. Générer la clé app
+docker compose exec app php artisan key:generate
+
+# 6. Migrations + users de démo
+docker compose exec app php artisan migrate --seed
+
+# 7. (Optionnel) lancer les tests
+docker compose exec app php artisan test
+```
+
+L'API est dispo sur **http://localhost:8000**  
+La doc Swagger : **http://localhost:8000/api/documentation**
+
+> Note: la base PostgreSQL n'est pas exposée sur l'hôte par défaut (pas de port `5432` publié).
+> Si besoin d'y accéder: `docker compose exec db psql -U stagetracker -d stagetracker`
+
+### Comptes de démo (seed)
+
+| Email | Password |
+|-------|----------|
+| `demo1@stagetracker.test` | `password123` |
+| `demo2@stagetracker.test` | `password123` |
+
+```bash
+# Arrêter
+docker compose down
+
+# Arrêter + supprimer la base (reset total)
+docker compose down -v
+```
+
+---
+
 ## 🚀 Installation
 
 ```bash
@@ -40,15 +88,10 @@ php artisan key:generate
 # DB_USERNAME=stagetracker
 # DB_PASSWORD=change_me
 
-# 6. Lancer les migrations
-php artisan migrate
+# 6. Lancer les migrations + seed users de démo
+php artisan migrate --seed
 
-# 7. Créer un utilisateur (via tinker)
-php artisan tinker
->>> \App\Models\User::factory()->create(['email'=>'admin@test.com','password'=>bcrypt('change_me')]);
->>> exit
-
-# 8. Lancer le serveur
+# 7. Lancer le serveur
 php artisan serve
 ```
 
@@ -58,13 +101,22 @@ php artisan serve
 
 L'API utilise **Laravel Sanctum** avec des tokens Bearer.
 
+### Register → créer un compte
+
+```bash
+curl -X POST http://localhost:8000/api/register \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"name":"Alice","email":"alice@test.com","password":"password123"}'
+```
+
 ### Login → obtenir un token
 
 ```bash
 curl -X POST http://localhost:8000/api/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"email":"admin@test.com","password":"change_me"}'
+  -d '{"email":"demo1@stagetracker.test","password":"password123"}'
 ```
 
 Réponse :
@@ -121,6 +173,7 @@ php artisan l5-swagger:generate
 
 | Méthode | URI | Description | Auth |
 |---------|-----|-------------|------|
+| `POST` | `/api/register` | Inscription + token | ❌ |
 | `POST` | `/api/login` | Connexion → token | ❌ |
 | `POST` | `/api/logout` | Déconnexion | ✅ |
 | `GET` | `/api/applications` | Liste (paginée, filtrable) | ✅ |
@@ -225,11 +278,13 @@ php artisan test
 php artisan test --filter=StageTrackerApiTest
 ```
 
-### Tests inclus (12 tests)
+### Tests inclus (17 tests)
 
 | Test | Ce qu'il vérifie |
 |------|-----------------|
 | `test_login_returns_token` | Login → 200 + token |
+| `test_register_creates_user_and_returns_token` | Register → 201 + token + user créé |
+| `test_register_fails_with_existing_email` | Register email existant → 422 |
 | `test_login_fails_with_wrong_credentials` | Mauvais mdp → 422 |
 | `test_unauthenticated_access_blocked` | Sans token → 401 |
 | `test_logout_revokes_token` | Logout → 204, puis 401 |
@@ -241,6 +296,9 @@ php artisan test --filter=StageTrackerApiTest
 | `test_create_application_validation_fails` | Données invalides → 422 |
 | `test_followup_crud` | CRUD complet des suivis |
 | `test_csv_export` | Export CSV → 200 + contenu CSV |
+| `test_swagger_documentation_accessible` | Swagger UI accessible |
+| `test_user_cannot_access_another_users_application` | Isolation: 404 sur la candidature d'un autre user |
+| `test_user_cannot_access_another_users_followups` | Isolation: 404 sur les followups d'un autre user |
 
 ---
 
@@ -287,6 +345,7 @@ tests/
 | Colonne | Type | Contrainte |
 |---------|------|------------|
 | id | bigint | PK auto |
+| user_id | FK nullable | → users (isolation par utilisateur) |
 | company | string | required |
 | position | string | required |
 | location | string | nullable |
@@ -310,4 +369,3 @@ tests/
 | updated_at | timestamp | auto |
 
 ---
-

@@ -8,6 +8,7 @@ use App\Http\Resources\FollowupResource;
 use App\Models\Application;
 use App\Models\Followup;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class FollowupController extends Controller
@@ -28,8 +29,10 @@ class FollowupController extends Controller
      *   @OA\Response(response=404, description="Candidature non trouvée")
      * )
      */
-    public function index(Application $application): AnonymousResourceCollection
+    public function index(Request $request, Application $application): AnonymousResourceCollection
     {
+        $application = $this->findOwnedApplication($request, $application);
+
         return FollowupResource::collection(
             $application->followups()->latest()->get()
         );
@@ -62,6 +65,8 @@ class FollowupController extends Controller
      */
     public function store(StoreFollowupRequest $request, Application $application): JsonResponse
     {
+        $application = $this->findOwnedApplication($request, $application);
+
         $followup = $application->followups()->create($request->validated());
 
         return (new FollowupResource($followup))
@@ -85,10 +90,27 @@ class FollowupController extends Controller
      *   @OA\Response(response=404, description="Suivi non trouvé")
      * )
      */
-    public function destroy(Followup $followup): JsonResponse
+    public function destroy(Request $request, Followup $followup): JsonResponse
     {
+        if (
+            !$followup->application()
+                ->where('user_id', $request->user()->id)
+                ->exists()
+        ) {
+            abort(404);
+        }
+
         $followup->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function findOwnedApplication(Request $request, Application $application): Application
+    {
+        if ((int) $application->user_id !== (int) $request->user()->id) {
+            abort(404);
+        }
+
+        return $application;
     }
 }

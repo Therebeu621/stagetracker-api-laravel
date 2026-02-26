@@ -55,7 +55,9 @@ class ApplicationController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Application::query()->withCount('followups');
+        $query = Application::query()
+            ->where('user_id', $request->user()->id)
+            ->withCount('followups');
 
         // Filter by status
         if ($request->filled('status')) {
@@ -100,7 +102,10 @@ class ApplicationController extends Controller
      */
     public function store(StoreApplicationRequest $request): JsonResponse
     {
-        $application = Application::create($request->validated());
+        $application = Application::create([
+            ...$request->validated(),
+            'user_id' => $request->user()->id,
+        ]);
 
         return (new ApplicationResource($application))
             ->response()
@@ -123,8 +128,9 @@ class ApplicationController extends Controller
      *   @OA\Response(response=404, description="Non trouvée")
      * )
      */
-    public function show(Application $application): ApplicationResource
+    public function show(Request $request, Application $application): ApplicationResource
     {
+        $application = $this->findOwnedApplication($request, $application);
         $application->loadCount('followups')->load('followups');
 
         return new ApplicationResource($application);
@@ -155,6 +161,7 @@ class ApplicationController extends Controller
      */
     public function update(UpdateApplicationRequest $request, Application $application): ApplicationResource
     {
+        $application = $this->findOwnedApplication($request, $application);
         $application->update($request->validated());
 
         return new ApplicationResource($application);
@@ -176,8 +183,9 @@ class ApplicationController extends Controller
      *   @OA\Response(response=404, description="Non trouvée")
      * )
      */
-    public function destroy(Application $application): JsonResponse
+    public function destroy(Request $request, Application $application): JsonResponse
     {
+        $application = $this->findOwnedApplication($request, $application);
         $application->delete();
 
         return response()->json(null, 204);
@@ -196,14 +204,16 @@ class ApplicationController extends Controller
      *   )
      * )
      */
-    public function exportCsv(): StreamedResponse
+    public function exportCsv(Request $request): StreamedResponse
     {
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="applications.csv"',
         ];
 
-        return response()->stream(function () {
+        $userId = $request->user()->id;
+
+        return response()->stream(function () use ($userId) {
             $handle = fopen('php://output', 'w');
 
             // Header row
@@ -221,7 +231,9 @@ class ApplicationController extends Controller
             ]);
 
             // Data rows (chunked for memory efficiency)
-            Application::orderBy('id')->chunk(200, function ($applications) use ($handle) {
+            Application::where('user_id', $userId)
+                ->orderBy('id')
+                ->chunk(200, function ($applications) use ($handle) {
                 foreach ($applications as $app) {
                     fputcsv($handle, [
                         $app->id,
@@ -240,5 +252,14 @@ class ApplicationController extends Controller
 
             fclose($handle);
         }, 200, $headers);
+    }
+
+    private function findOwnedApplication(Request $request, Application $application): Application
+    {
+        if ((int) $application->user_id !== (int) $request->user()->id) {
+            abort(404);
+        }
+
+        return $application;
     }
 }

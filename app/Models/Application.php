@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Application extends Model
@@ -11,6 +12,7 @@ class Application extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'company',
         'position',
         'location',
@@ -34,5 +36,13 @@ class Application extends Model
     public function followups(): HasMany
     {
         return $this->hasMany(Followup::class);
+    }
+
+    /**
+     * Get the user that owns this application.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
