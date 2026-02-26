@@ -39,6 +39,18 @@ docker compose exec app php artisan test
 L'API est dispo sur **http://localhost:8000**  
 La doc Swagger : **http://localhost:8000/api/documentation**
 
+### UI web (test manuel)
+
+L'interface web est aussi disponible sur **http://localhost:8000**.
+
+Tu peux tester rapidement:
+- Login / Register
+- Creation, edition, suppression de candidatures
+- Followups (email/call/linkedin)
+- Recherche, filtres, tri
+- Export CSV
+- Separation par utilisateur (chaque user ne voit que ses candidatures)
+
 > Note: la base PostgreSQL n'est pas exposée sur l'hôte par défaut (pas de port `5432` publié).
 > Si besoin d'y accéder: `docker compose exec db psql -U stagetracker -d stagetracker`
 
@@ -100,6 +112,7 @@ php artisan serve
 ## 🔐 Authentification
 
 L'API utilise **Laravel Sanctum** avec des tokens Bearer.
+Le projet utilise le mode token API (header `Authorization: Bearer <token>`), pas le flow SPA cookie/CSRF.
 
 ### Register → créer un compte
 
@@ -278,7 +291,7 @@ php artisan test
 php artisan test --filter=StageTrackerApiTest
 ```
 
-### Tests inclus (17 tests)
+### Tests inclus (19 tests)
 
 | Test | Ce qu'il vérifie |
 |------|-----------------|
