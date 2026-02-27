@@ -1,129 +1,101 @@
 # StageTracker API
 
-> API REST Laravel pour gérer ses candidatures de stage.  
-> Projet personnel.
+API REST Laravel pour gerer ses candidatures de stage, avec interface web de test.
 
 ## Stack
 
-- PHP 8.3 · Laravel 12 · PostgreSQL
-- Auth : Laravel Sanctum (token API)
-- Tests : PHPUnit (Feature tests)
+- PHP 8.3
+- Laravel 12
+- PostgreSQL
+- Authentification: Laravel Sanctum (Bearer token)
+- Documentation: Swagger / OpenAPI
+- Tests: PHPUnit
+- CI: GitHub Actions
 
----
+## Fonctionnalites
 
-## 🐳 Lancement avec Docker (recommandé)
+- Register / Login / Logout
+- CRUD candidatures
+- CRUD followups (email, call, linkedin)
+- Export CSV
+- Interface web sur `/` pour test manuel
+- Isolation par utilisateur (chaque user ne voit que ses donnees)
+
+## Lancement avec Docker (recommande)
+
+Les commandes ci-dessous utilisent `docker-compose` (version classique).
 
 ```bash
 # 1. Copier l'env Docker
 cp .env.docker .env
 
-# 2. Build image PHP
-docker compose build app
+# 2. Build + demarrage
+docker-compose up -d --build
 
-# 3. Installer les dépendances PHP dans le volume vendor
-docker compose run --rm app composer install --no-interaction --prefer-dist
+# 3. Installer les dependances PHP (si necessaire)
+docker-compose exec app composer install --no-interaction --prefer-dist
 
-# 4. Démarrage des services
-docker compose up -d
+# 4. Generer la cle
+docker-compose exec app php artisan key:generate
 
-# 5. Générer la clé app
-docker compose exec app php artisan key:generate
-
-# 6. Migrations + users de démo
-docker compose exec app php artisan migrate --seed
-
-# 7. (Optionnel) lancer les tests
-docker compose exec app php artisan test
+# 5. Migrations + seed users de demo
+docker-compose exec app php artisan migrate --seed
 ```
 
-L'API est dispo sur **http://localhost:8000**  
-La doc Swagger : **http://localhost:8000/api/documentation**
+URLs:
 
-### UI web (test manuel)
+- App / UI web: http://localhost:8000
+- Swagger UI: http://localhost:8000/api/documentation
 
-L'interface web est aussi disponible sur **http://localhost:8000**.
+Comptes de demo:
 
-Tu peux tester rapidement:
+- `demo1@stagetracker.test` / `password123`
+- `demo2@stagetracker.test` / `password123`
+
+Arret:
+
+```bash
+docker-compose down
+```
+
+Reset complet (supprime aussi la base):
+
+```bash
+docker-compose down -v
+```
+
+## UI web (test manuel)
+
+Depuis http://localhost:8000, tu peux tester:
+
 - Login / Register
 - Creation, edition, suppression de candidatures
-- Followups (email/call/linkedin)
+- Followups
 - Recherche, filtres, tri
 - Export CSV
-- Separation par utilisateur (chaque user ne voit que ses candidatures)
+- Separation des donnees entre utilisateurs
 
-> Note: la base PostgreSQL n'est pas exposée sur l'hôte par défaut (pas de port `5432` publié).
-> Si besoin d'y accéder: `docker compose exec db psql -U stagetracker -d stagetracker`
+## Installation locale (optionnelle, sans Docker)
 
-### Comptes de démo (seed)
-
-| Email | Password |
-|-------|----------|
-| `demo1@stagetracker.test` | `password123` |
-| `demo2@stagetracker.test` | `password123` |
+Cette section est optionnelle. Utilise-la seulement si tu ne veux pas Docker.
 
 ```bash
-# Arrêter
-docker compose down
-
-# Arrêter + supprimer la base (reset total)
-docker compose down -v
-```
-
----
-
-## 🚀 Installation
-
-```bash
-# 1. Cloner / se rendre dans le projet
 cd ~/testlaravel/stagetracker
-
-# 2. Installer les dépendances
 composer install
-
-# 3. Installer PostgreSQL et l'extension PHP (si pas déjà fait)
-sudo apt install -y postgresql postgresql-client php8.3-pgsql
-sudo service postgresql start
-
-# 4. Créer la base de données
-sudo -u postgres psql -c "CREATE USER stagetracker WITH PASSWORD 'change_me';"
-sudo -u postgres psql -c "CREATE DATABASE stagetracker OWNER stagetracker;"
-
-# 5. Copier l'env (si pas déjà fait) et configurer la DB
 cp .env.example .env
 php artisan key:generate
-
-# Le .env est déjà configuré pour PostgreSQL:
-# DB_CONNECTION=pgsql
-# DB_HOST=127.0.0.1
-# DB_PORT=5432
-# DB_DATABASE=stagetracker
-# DB_USERNAME=stagetracker
-# DB_PASSWORD=change_me
-
-# 6. Lancer les migrations + seed users de démo
 php artisan migrate --seed
-
-# 7. Lancer le serveur
 php artisan serve
 ```
 
----
+## Authentification
 
-## 🔐 Authentification
+Le projet utilise Sanctum en mode API token:
 
-L'API utilise **Laravel Sanctum** avec des tokens Bearer.
-Le projet utilise le mode token API (header `Authorization: Bearer <token>`), pas le flow SPA cookie/CSRF.
+- Header requis sur routes protegees: `Authorization: Bearer <token>`
+- Pas de flow SPA cookie/CSRF pour le front de ce projet
 
-### Register → créer un compte
-
-```bash
-curl -X POST http://localhost:8000/api/register \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"name":"Alice","email":"alice@test.com","password":"password123"}'
-```
-
-### Login → obtenir un token
+Exemple login:
 
 ```bash
 curl -X POST http://localhost:8000/api/login \
@@ -132,93 +104,81 @@ curl -X POST http://localhost:8000/api/login \
   -d '{"email":"demo1@stagetracker.test","password":"password123"}'
 ```
 
-Réponse :
-```json
-{
-  "message": "Authenticated",
-  "token": "1|abc123..."
-}
-```
+## Endpoints
 
-### Utiliser le token
+Legende colonne Auth:
 
-Ajouter le header `Authorization: Bearer <token>` à chaque requête protégée.
+- `Public` = pas de token requis
+- `Token` = Bearer token requis
 
-### Logout
+| Methode | URI | Description | Auth |
+|---|---|---|---|
+| `POST` | `/api/register` | Inscription + token | Public |
+| `POST` | `/api/login` | Connexion + token | Public |
+| `POST` | `/api/logout` | Deconnexion | Token |
+| `GET` | `/api/applications` | Liste (paginee, filtrable) | Token |
+| `POST` | `/api/applications` | Creer une candidature | Token |
+| `GET` | `/api/applications/{id}` | Detail candidature | Token |
+| `PATCH` | `/api/applications/{id}` | Modifier candidature | Token |
+| `DELETE` | `/api/applications/{id}` | Supprimer candidature | Token |
+| `GET` | `/api/applications/export.csv` | Export CSV | Token |
+| `GET` | `/api/applications/{id}/followups` | Liste followups | Token |
+| `POST` | `/api/applications/{id}/followups` | Ajouter followup | Token |
+| `DELETE` | `/api/followups/{id}` | Supprimer followup | Token |
 
-```bash
-curl -X POST http://localhost:8000/api/logout \
-  -H "Authorization: Bearer 1|abc123..." \
-  -H "Accept: application/json"
-```
+## Tests
 
----
-
-## 📚 Documentation Interactive (Swagger/OpenAPI)
-
-L'API est entièrement documentée via **Swagger UI** — testez tous les endpoints directement dans le navigateur !
-
-### Accéder à Swagger UI
-
-```
-http://localhost:8000/api/documentation
-```
-
-### Utiliser l'authentification dans Swagger
-
-1. Cliquez sur le bouton **"Authorize"** 🔒 en haut à droite
-2. Dans le champ `bearerAuth`, entrez : `Bearer VOTRE_TOKEN`
-   - Exemple : `Bearer 1|abc123...`
-3. Cliquez sur **"Authorize"**, puis **"Close"**
-4. Les requêtes protégées ✅ fonctionneront maintenant
-
-### Re-générer la doc Swagger
-
-Si vous modifiez les annotations :
+Lancer tous les tests:
 
 ```bash
-php artisan l5-swagger:generate
+php artisan test
 ```
 
----
+Avec Docker:
 
-## 📋 Endpoints
-
-| Méthode | URI | Description | Auth |
-|---------|-----|-------------|------|
-| `POST` | `/api/register` | Inscription + token | ❌ |
-| `POST` | `/api/login` | Connexion → token | ❌ |
-| `POST` | `/api/logout` | Déconnexion | ✅ |
-| `GET` | `/api/applications` | Liste (paginée, filtrable) | ✅ |
-| `POST` | `/api/applications` | Créer une candidature | ✅ |
-| `GET` | `/api/applications/{id}` | Détail | ✅ |
-| `PATCH` | `/api/applications/{id}` | Modifier | ✅ |
-| `DELETE` | `/api/applications/{id}` | Supprimer | ✅ |
-| `GET` | `/api/applications/export.csv` | Export CSV | ✅ |
-| `POST` | `/api/applications/{id}/followups` | Ajouter un suivi | ✅ |
-| `GET` | `/api/applications/{id}/followups` | Liste des suivis | ✅ |
-| `DELETE` | `/api/followups/{id}` | Supprimer un suivi | ✅ |
-
-### Filtres et pagination
-
-```
-GET /api/applications?status=applied&sort=applied_at&direction=asc&per_page=10
+```bash
+docker-compose exec app php artisan test
 ```
 
-| Paramètre | Valeurs | Défaut |
-|-----------|---------|--------|
-| `status` | `applied`, `interview`, `offer`, `rejected` | — |
-| `sort` | `applied_at` | `created_at desc` |
-| `direction` | `asc`, `desc` | `desc` |
-| `per_page` | 1–100 | 15 |
+Etat actuel:
 
----
+- 19 tests passent
+- dont 17 tests API dans `StageTrackerApiTest`
 
-## 📝 Exemples curl
+## CI
 
-> Remplacer `TOKEN` par votre token obtenu via `/api/login`.
+Workflow GitHub Actions: `.github/workflows/tests.yml`
 
-### Créer une candidature
+Sur `push` et `pull_request`:
+
+- setup PHP 8.3
+- install dependencies
+- `php artisan key:generate`
+- `php artisan test`
+
+## Annexe - Exemples API (curl)
+
+Remplace `TOKEN` par le token recu au login.
+
+### Register
+
+```bash
+curl -X POST http://localhost:8000/api/register \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"name":"Alice","email":"alice@test.com","password":"password123"}'
+```
+
+### Login
+
+```bash
+curl -X POST http://localhost:8000/api/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"email":"demo1@stagetracker.test","password":"password123"}'
+```
+
+### Creer une candidature
 
 ```bash
 curl -X POST http://localhost:8000/api/applications \
@@ -227,33 +187,33 @@ curl -X POST http://localhost:8000/api/applications \
   -H "Accept: application/json" \
   -d '{
     "company": "Google",
-    "position": "Backend Developer",
+    "position": "Backend Intern",
     "location": "Paris",
     "status": "applied",
-    "applied_at": "2026-02-01",
-    "notes": "Applied via website"
+    "applied_at": "2026-02-10",
+    "notes": "Applied via careers page."
   }'
 ```
 
-### Lister avec filtre
+### Lister les candidatures filtrees
 
 ```bash
-curl http://localhost:8000/api/applications?status=applied \
+curl "http://localhost:8000/api/applications?status=applied&sort=applied_at&direction=desc&per_page=10" \
   -H "Authorization: Bearer TOKEN" \
   -H "Accept: application/json"
 ```
 
-### Modifier le statut
+### Modifier une candidature
 
 ```bash
 curl -X PATCH http://localhost:8000/api/applications/1 \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"status": "interview"}'
+  -d '{"status":"interview"}'
 ```
 
-### Supprimer
+### Supprimer une candidature
 
 ```bash
 curl -X DELETE http://localhost:8000/api/applications/1 \
@@ -261,14 +221,14 @@ curl -X DELETE http://localhost:8000/api/applications/1 \
   -H "Accept: application/json"
 ```
 
-### Ajouter un suivi
+### Ajouter un followup
 
 ```bash
 curl -X POST http://localhost:8000/api/applications/1/followups \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -d '{"type": "email", "done_at": "2026-02-10", "notes": "Relance envoyée"}'
+  -d '{"type":"email","done_at":"2026-02-26","notes":"Relance envoyee"}'
 ```
 
 ### Export CSV
@@ -279,106 +239,57 @@ curl http://localhost:8000/api/applications/export.csv \
   -o applications.csv
 ```
 
----
+## Annexe - Structure du projet
 
-## 🧪 Tests
-
-```bash
-# Lancer tous les tests
-php artisan test
-
-# Lancer uniquement les tests API
-php artisan test --filter=StageTrackerApiTest
-```
-
-### Tests inclus (19 tests)
-
-| Test | Ce qu'il vérifie |
-|------|-----------------|
-| `test_login_returns_token` | Login → 200 + token |
-| `test_register_creates_user_and_returns_token` | Register → 201 + token + user créé |
-| `test_register_fails_with_existing_email` | Register email existant → 422 |
-| `test_login_fails_with_wrong_credentials` | Mauvais mdp → 422 |
-| `test_unauthenticated_access_blocked` | Sans token → 401 |
-| `test_logout_revokes_token` | Logout → 204, puis 401 |
-| `test_create_application` | POST → 201 + JSON correct |
-| `test_list_applications_with_filters` | GET ?status= → filtres + pagination |
-| `test_show_application` | GET /{id} → 200 |
-| `test_update_application` | PATCH → 200 + données mises à jour |
-| `test_delete_application` | DELETE → 204 |
-| `test_create_application_validation_fails` | Données invalides → 422 |
-| `test_followup_crud` | CRUD complet des suivis |
-| `test_csv_export` | Export CSV → 200 + contenu CSV |
-| `test_swagger_documentation_accessible` | Swagger UI accessible |
-| `test_user_cannot_access_another_users_application` | Isolation: 404 sur la candidature d'un autre user |
-| `test_user_cannot_access_another_users_followups` | Isolation: 404 sur les followups d'un autre user |
-
----
-
-## 📁 Structure du projet
-
-```
+```text
 app/
-├── Http/
-│   ├── Controllers/Api/
-│   │   ├── AuthController.php
-│   │   ├── ApplicationController.php
-│   │   └── FollowupController.php
-│   ├── Requests/
-│   │   ├── StoreApplicationRequest.php
-│   │   ├── UpdateApplicationRequest.php
-│   │   └── StoreFollowupRequest.php
-│   └── Resources/
-│       ├── ApplicationResource.php
-│       └── FollowupResource.php
-├── Models/
-│   ├── Application.php
-│   ├── Followup.php
-│   └── User.php
+  Http/
+    Controllers/Api/
+      AuthController.php
+      ApplicationController.php
+      FollowupController.php
+    Requests/
+      StoreApplicationRequest.php
+      UpdateApplicationRequest.php
+      StoreFollowupRequest.php
+    Resources/
+      ApplicationResource.php
+      FollowupResource.php
+  Models/
+    User.php
+    Application.php
+    Followup.php
 database/
-├── factories/
-│   ├── ApplicationFactory.php
-│   └── FollowupFactory.php
-├── migrations/
-│   ├── ...create_applications_table.php
-│   └── ...create_followups_table.php
+  migrations/
+  factories/
+  seeders/
 routes/
-└── api.php
+  api.php
+  web.php
 tests/
-└── Feature/Api/
-    └── StageTrackerApiTest.php
+  Feature/Api/StageTrackerApiTest.php
 ```
 
----
-
-## 📊 Modèle de données
+## Annexe - Modele de donnees
 
 ### applications
 
-| Colonne | Type | Contrainte |
-|---------|------|------------|
-| id | bigint | PK auto |
-| user_id | FK nullable | → users (isolation par utilisateur) |
-| company | string | required |
-| position | string | required |
-| location | string | nullable |
-| status | enum | applied/interview/offer/rejected |
-| applied_at | date | nullable |
-| next_followup_at | date | nullable |
-| notes | text | nullable |
-| created_at | timestamp | auto |
-| updated_at | timestamp | auto |
+- `id` (bigint, PK)
+- `user_id` (FK nullable -> users)
+- `company` (string, required)
+- `position` (string, required)
+- `location` (string, nullable)
+- `status` (enum: applied, interview, offer, rejected)
+- `applied_at` (date, nullable)
+- `next_followup_at` (date, nullable)
+- `notes` (text, nullable)
+- `created_at`, `updated_at`
 
 ### followups
 
-| Colonne | Type | Contrainte |
-|---------|------|------------|
-| id | bigint | PK auto |
-| application_id | FK | → applications (cascade) |
-| type | enum | email/call/linkedin |
-| done_at | date | nullable |
-| notes | text | nullable |
-| created_at | timestamp | auto |
-| updated_at | timestamp | auto |
-
----
+- `id` (bigint, PK)
+- `application_id` (FK -> applications, cascade delete)
+- `type` (enum: email, call, linkedin)
+- `done_at` (date, nullable)
+- `notes` (text, nullable)
+- `created_at`, `updated_at`
