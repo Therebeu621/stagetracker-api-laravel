@@ -2,6 +2,8 @@
 
 API REST Laravel pour gerer ses candidatures de stage, avec interface web de test.
 
+![Apercu interface web](docs/images/interface-apercu.png)
+
 ## Stack
 
 - PHP 8.3
