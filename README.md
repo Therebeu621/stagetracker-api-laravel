@@ -38,7 +38,7 @@ docker-compose exec app composer install --no-interaction --prefer-dist
 # 4. Generer la cle
 docker-compose exec app php artisan key:generate
 
-# 5. Migrations + seed users de demo
+# 5. Migrations + seed users + donnees de demo
 docker-compose exec app php artisan migrate --seed
 ```
 
@@ -51,6 +51,8 @@ Comptes de demo:
 
 - `demo1@stagetracker.test` / `password123`
 - `demo2@stagetracker.test` / `password123`
+
+Le seed cree aussi quelques candidatures et followups de demonstration pour chaque compte.
 
 Arret:
 
