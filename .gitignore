@@ -1,7 +1,9 @@
 *.log
 .DS_Store
 .env
+.env.terraform
 .env.backup
+.env.backup.local
 .env.production
 .phpactor.json
 .phpunit.result.cache
