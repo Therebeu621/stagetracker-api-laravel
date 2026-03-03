@@ -4,6 +4,78 @@ API REST Laravel pour gerer ses candidatures de stage, avec interface web de tes
 
 ![Apercu interface web](docs/images/interface-apercu.png)
 
+## Apercu Terraform
+
+![Apercu Terraform](docs/images/terraform-apercu.png)
+
+## Quick Start (Docker)
+
+```bash
+cd ~/testlaravel/stagetracker
+cp .env.docker .env
+docker-compose up -d --build
+docker-compose exec app composer install --no-interaction --prefer-dist
+docker-compose exec app php artisan key:generate
+docker-compose exec app php artisan migrate --seed
+```
+
+URLs:
+
+- App / UI: http://localhost:8000
+- Swagger UI: http://localhost:8000/api/documentation
+
+Comptes de demo:
+
+- `demo1@stagetracker.test` / `password123`
+- `demo2@stagetracker.test` / `password123`
+
+Arret:
+
+```bash
+docker-compose down
+```
+
+Reset complet (supprime la DB Compose):
+
+```bash
+docker-compose down -v
+```
+
+## Quick Start (Docker + DB Terraform)
+
+1. Demarrer l'infra Terraform locale (PostgreSQL + Adminer):
+
+```bash
+cd ~/testlaravel/stagetracker/infra/local-docker
+cp terraform.tfvars.example terraform.tfvars
+# adapte postgres_password si besoin
+terraform init
+terraform apply -lock=false
+```
+
+2. Demarrer l'UI Docker Compose connectee a la DB Terraform:
+
+```bash
+cd ~/testlaravel/stagetracker
+TF_DB_PASSWORD=change_me ./scripts/up-compose-with-terraform-db.sh
+```
+
+3. Arret du mode combine:
+
+```bash
+cd ~/testlaravel/stagetracker
+./scripts/down-compose-with-terraform-db.sh
+cd infra/local-docker
+terraform destroy -lock=false
+```
+
+Notes:
+
+- Le mode combine n'utilise pas le service `db` de `docker-compose.yml`.
+- L'app Docker vise par defaut `host.docker.internal:5434`.
+- Tu peux overrider via `TF_DB_HOST`, `TF_DB_PORT`, `TF_DB_DATABASE`, `TF_DB_USERNAME`, `TF_DB_PASSWORD`.
+- Pour le detail Terraform (cycle, state, depannage): [infra/local-docker/README.md](infra/local-docker/README.md)
+
 ## Stack
 
 - PHP 8.3
@@ -23,78 +95,7 @@ API REST Laravel pour gerer ses candidatures de stage, avec interface web de tes
 - Interface web sur `/` pour test manuel
 - Isolation par utilisateur (chaque user ne voit que ses donnees)
 
-## Lancement avec Docker (recommande)
-
-Les commandes ci-dessous utilisent `docker-compose` (version classique).
-
-```bash
-# 1. Copier l'env Docker
-cp .env.docker .env
-
-# 2. Build + demarrage
-docker-compose up -d --build
-
-# 3. Installer les dependances PHP (si necessaire)
-docker-compose exec app composer install --no-interaction --prefer-dist
-
-# 4. Generer la cle
-docker-compose exec app php artisan key:generate
-
-# 5. Migrations + seed users + donnees de demo
-docker-compose exec app php artisan migrate --seed
-```
-
-URLs:
-
-- App / UI web: http://localhost:8000
-- Swagger UI: http://localhost:8000/api/documentation
-
-Comptes de demo:
-
-- `demo1@stagetracker.test` / `password123`
-- `demo2@stagetracker.test` / `password123`
-
-Le seed cree aussi quelques candidatures et followups de demonstration pour chaque compte.
-
-Arret:
-
-```bash
-docker-compose down
-```
-
-Reset complet (supprime aussi la base):
-
-```bash
-docker-compose down -v
-```
-
-## UI web (test manuel)
-
-Depuis http://localhost:8000, tu peux tester:
-
-- Login / Register
-- Creation, edition, suppression de candidatures
-- Followups
-- Recherche, filtres, tri
-- Export CSV
-- Separation des donnees entre utilisateurs
-
-## Installation locale (optionnelle, sans Docker)
-
-Cette section est optionnelle. Utilise-la seulement si tu ne veux pas Docker.
-
-```bash
-cd ~/testlaravel/stagetracker
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-php artisan serve
-```
-
 ## Authentification
-
-Le projet utilise Sanctum en mode API token:
 
 - Header requis sur routes protegees: `Authorization: Bearer <token>`
 - Pas de flow SPA cookie/CSRF pour le front de ce projet
@@ -109,11 +110,6 @@ curl -X POST http://localhost:8000/api/login \
 ```
 
 ## Endpoints
-
-Legende colonne Auth:
-
-- `Public` = pas de token requis
-- `Token` = Bearer token requis
 
 | Methode | URI | Description | Auth |
 |---|---|---|---|
@@ -132,7 +128,7 @@ Legende colonne Auth:
 
 ## Tests
 
-Lancer tous les tests:
+Local:
 
 ```bash
 php artisan test
@@ -151,38 +147,24 @@ Etat actuel:
 
 ## CI
 
-Workflow GitHub Actions: `.github/workflows/tests.yml`
+- Tests app: `.github/workflows/tests.yml`
+- Checks Terraform (fmt/init/validate): `.github/workflows/terraform.yml`
+- Aucun `terraform apply` n'est execute en CI
 
-Sur `push` et `pull_request`:
-
-- setup PHP 8.3
-- install dependencies
-- `php artisan key:generate`
-- `php artisan test`
-
-## Annexe - Exemples API (curl)
-
-Remplace `TOKEN` par le token recu au login.
-
-### Register
+## Installation locale (sans Docker, optionnelle)
 
 ```bash
-curl -X POST http://localhost:8000/api/register \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"name":"Alice","email":"alice@test.com","password":"password123"}'
+cd ~/testlaravel/stagetracker
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
 ```
 
-### Login
+## Exemples API (curl)
 
-```bash
-curl -X POST http://localhost:8000/api/login \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"email":"demo1@stagetracker.test","password":"password123"}'
-```
-
-### Creer une candidature
+Creer une candidature:
 
 ```bash
 curl -X POST http://localhost:8000/api/applications \
@@ -199,101 +181,10 @@ curl -X POST http://localhost:8000/api/applications \
   }'
 ```
 
-### Lister les candidatures filtrees
-
-```bash
-curl "http://localhost:8000/api/applications?status=applied&sort=applied_at&direction=desc&per_page=10" \
-  -H "Authorization: Bearer TOKEN" \
-  -H "Accept: application/json"
-```
-
-### Modifier une candidature
-
-```bash
-curl -X PATCH http://localhost:8000/api/applications/1 \
-  -H "Authorization: Bearer TOKEN" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"status":"interview"}'
-```
-
-### Supprimer une candidature
-
-```bash
-curl -X DELETE http://localhost:8000/api/applications/1 \
-  -H "Authorization: Bearer TOKEN" \
-  -H "Accept: application/json"
-```
-
-### Ajouter un followup
-
-```bash
-curl -X POST http://localhost:8000/api/applications/1/followups \
-  -H "Authorization: Bearer TOKEN" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"type":"email","done_at":"2026-02-26","notes":"Relance envoyee"}'
-```
-
-### Export CSV
+Export CSV:
 
 ```bash
 curl http://localhost:8000/api/applications/export.csv \
   -H "Authorization: Bearer TOKEN" \
   -o applications.csv
 ```
-
-## Annexe - Structure du projet
-
-```text
-app/
-  Http/
-    Controllers/Api/
-      AuthController.php
-      ApplicationController.php
-      FollowupController.php
-    Requests/
-      StoreApplicationRequest.php
-      UpdateApplicationRequest.php
-      StoreFollowupRequest.php
-    Resources/
-      ApplicationResource.php
-      FollowupResource.php
-  Models/
-    User.php
-    Application.php
-    Followup.php
-database/
-  migrations/
-  factories/
-  seeders/
-routes/
-  api.php
-  web.php
-tests/
-  Feature/Api/StageTrackerApiTest.php
-```
-
-## Annexe - Modele de donnees
-
-### applications
-
-- `id` (bigint, PK)
-- `user_id` (FK nullable -> users)
-- `company` (string, required)
-- `position` (string, required)
-- `location` (string, nullable)
-- `status` (enum: applied, interview, offer, rejected)
-- `applied_at` (date, nullable)
-- `next_followup_at` (date, nullable)
-- `notes` (text, nullable)
-- `created_at`, `updated_at`
-
-### followups
-
-- `id` (bigint, PK)
-- `application_id` (FK -> applications, cascade delete)
-- `type` (enum: email, call, linkedin)
-- `done_at` (date, nullable)
-- `notes` (text, nullable)
-- `created_at`, `updated_at`
