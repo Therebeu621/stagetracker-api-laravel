@@ -1,0 +1,17 @@
+services:
+  app:
+    environment:
+      COMPOSER_ALLOW_SUPERUSER: "1"
+      DB_CONNECTION: pgsql
+      DB_HOST: ${TF_DB_HOST:-host.docker.internal}
+      DB_PORT: ${TF_DB_PORT:-5434}
+      DB_DATABASE: ${TF_DB_DATABASE:-stagetracker_tf}
+      DB_USERNAME: ${TF_DB_USERNAME:-stagetracker}
+      DB_PASSWORD: ${TF_DB_PASSWORD:-change_me}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: []
+
+  db:
+    profiles:
+      - local-db
