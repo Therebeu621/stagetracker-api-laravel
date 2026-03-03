@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and adjust values locally.
+postgres_password = "change_me"
+# postgres_host_port = 5433
+# adminer_host_port  = 8081
+# enable_adminer     = true

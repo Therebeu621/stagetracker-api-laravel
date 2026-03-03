@@ -1,0 +1,30 @@
+name: Terraform Local Checks
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform fmt (check)
+        run: terraform fmt -check -recursive infra/local-docker
+
+      - name: Terraform init
+        working-directory: infra/local-docker
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: infra/local-docker
+        run: terraform validate
